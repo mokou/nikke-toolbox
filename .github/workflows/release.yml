@@ -1,4 +1,4 @@
-name: Main
+name: Release
 
 on:
   push:
@@ -15,6 +15,5 @@ jobs:
         run: cargo build --release
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: target/release/nikke-toolbox.exe
