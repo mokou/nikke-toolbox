@@ -23,3 +23,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: target/release/nikke-toolbox.exe
+
+permissions:
+  contents: write
