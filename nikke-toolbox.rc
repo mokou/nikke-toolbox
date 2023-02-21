@@ -1,0 +1,5 @@
+#define RT_MANIFEST 24
+#define HELMSTAR 101
+
+1 RT_MANIFEST "nikke-toolbox.exe.manifest"
+HELMSTAR ICON "helmstar.ico"
