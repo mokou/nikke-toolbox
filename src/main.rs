@@ -114,24 +114,22 @@ fn relocate() -> std::io::Result<()> {
     
     println!("Moving files from: {}\nto: {}", &cpb.display(), &cpb_reloc.display());
     if !cpb.exists() { fs::create_dir(cpb)?; } 
-    move_dir(&cpb, &cpb_reloc, &COPY_OPTIONS).unwrap_or_else(|error| {
+    move_dir(cpb, &cpb_reloc, &COPY_OPTIONS).unwrap_or_else(|error| {
         println!("Problem copying files to destination directory: {:#?}", error);
-        return 0;
+        0
     });
-    symlink_dir(&cpb_reloc, &cpb).unwrap_or_else(|error| {
+    symlink_dir(&cpb_reloc, cpb).unwrap_or_else(|error| {
         println!("Problem creating symlink: {:#?}", error);
-        return;
     });
 
     println!("Moving files from {}\nto: {}", &cpbn.display(), &cpbn_reloc.display());
     if !cpbn.exists() { fs::create_dir(cpbn)?; }
-    move_dir(&cpbn, &cpbn_reloc, &COPY_OPTIONS).unwrap_or_else(|error| {
+    move_dir(cpbn, &cpbn_reloc, &COPY_OPTIONS).unwrap_or_else(|error| {
         println!("Problem copying files to destination directory: {:#?}", error);
-        return 0;
+        0
     });
-    symlink_dir(&cpbn_reloc, &cpbn).unwrap_or_else(|error| {
+    symlink_dir(&cpbn_reloc, cpbn).unwrap_or_else(|error| {
         println!("Problem creating symlink: {:#?}", error);
-        return;
     });
     
     println!("Nikke has been relocated.");
@@ -147,16 +145,15 @@ fn undo_relocate() -> std::io::Result<()> {
     if !fuck_is_symlink(cpb)? {
         println!("No relocation to undo at: {}", &cpb.display());
     } else {
-        fs::remove_dir(&cpb).unwrap_or_else(|error| {
+        fs::remove_dir(cpb).unwrap_or_else(|error| {
             println!("Unable to remove symlink: {:#?}", error);
-            return;
         });
         println!("Moving files from: {}\nto: {}", &cpb_reloc.display(), &cpb.display());
-        move_dir(&cpb_reloc, &cpb, &COPY_OPTIONS).unwrap_or_else(|error| {
+        move_dir(&cpb_reloc, cpb, &COPY_OPTIONS).unwrap_or_else(|error| {
             println!("Unable to move files: {:#?}", error);
-            return 1;
+            1
         });
-        match fs::remove_dir(&cpb) {
+        match fs::remove_dir(cpb) {
             Ok(_) => (),
             Err(error) => {
                 if error.kind() != ErrorKind::DirectoryNotEmpty { return Err(error); }
@@ -167,16 +164,15 @@ fn undo_relocate() -> std::io::Result<()> {
     if !fuck_is_symlink(cpbn)? {
         println!("No relocation to undo at: {}", &cpbn.display());
     } else {
-        fs::remove_dir(&cpbn).unwrap_or_else(|error| {
+        fs::remove_dir(cpbn).unwrap_or_else(|error| {
             println!("Unable to remove symlink: {:#?}", error);
-            return;
         });
         println!("Moving files from: {}\nto: {}", &cpbn_reloc.display(), &cpbn.display());
-        move_dir(&cpbn_reloc, &cpbn, &COPY_OPTIONS).unwrap_or_else(|error| {
+        move_dir(&cpbn_reloc, cpbn, &COPY_OPTIONS).unwrap_or_else(|error| {
             println!("Unable to move files: {:#?}", error);
-            return 1;
+            1
         });
-        match fs::remove_dir(&cpbn) {
+        match fs::remove_dir(cpbn) {
             Ok(_) => (),
             Err(error) => {
                 if error.kind() != ErrorKind::DirectoryNotEmpty { return Err(error); }
@@ -188,13 +184,11 @@ fn undo_relocate() -> std::io::Result<()> {
         if error.kind() != ErrorKind::DirectoryNotEmpty {
             println!("Problem cleaning up: {:#?}", error);
         };
-        return;
     });
     fs::remove_dir(cpb_reloc.parent().unwrap()).unwrap_or_else(|error| {
         if error.kind() != ErrorKind::DirectoryNotEmpty {
             println!("Problem cleaning up: {:#?}", error);
         };
-        return;
     });
 
     println!("Relocation undone.");
