@@ -18,6 +18,8 @@ const RELOC_SUFFIX: &str = r"nikke-toolbox\LocalLow";
 const CPB_SUFFIX: &str = "com_proximabeta";
 const CPBN_SUFFIX: &str = r"Unity\com_proximabeta_NIKKE";
 
+const VERSION: &str = "0.1";
+
 lazy_static! {
     static ref INSTALL_PATH: PathBuf = PathBuf::from(
         HKCU.open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Uninstall\nikke_launcher")
@@ -35,10 +37,12 @@ lazy_static! {
 }
 
 fn main() -> std::io::Result<()> {
+    println!("Nikke Toolbox v{}", VERSION);
+    println!("Highlight the desired operation with your arrow keys and hit Enter to select.");
     let items = vec!["Exit", "Relocate Nikke", "Undo Nikke Relocation", "Nuke Installation", "About"];
     loop {
         let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Nikke Toolbox v0.1")
+            .with_prompt("Main Menu")
             .items(&items)
             .default(0)
             .interact_on_opt(&Term::stderr())?;
