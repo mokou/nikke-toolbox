@@ -10,6 +10,7 @@ use winreg::enums::*;
 use winreg::RegKey;
 use lazy_static::lazy_static;
 use std::path::PathBuf;
+use remove_dir_all::*;
 
 mod util;
 
@@ -228,7 +229,7 @@ fn nuke() -> std::io::Result<()> {
     if is_symlink(&cpb)? {
         cpb = fs::read_link(&cpb)?;
     }
-    match fs::remove_dir_all(&cpb) {
+    match remove_dir_contents(&cpb) {
         Ok(res) => {
             println!("Nuked: {}", &cpb.display());
             res
@@ -249,7 +250,7 @@ fn nuke() -> std::io::Result<()> {
         cpbn = fs::read_link(&cpbn)?;
 
     }
-    match fs::remove_dir_all(&cpbn) {
+    match remove_dir_contents(&cpbn) {
         Ok(res) => {
             println!("Nuked: {}", &cpbn.display());
             res
@@ -262,6 +263,7 @@ fn nuke() -> std::io::Result<()> {
             }
         }
     }
+    //TODO: Test if this is needed still after using remove_dir_contents()
     if is_symlink(CPBN.as_path())? {
         fs::create_dir(&cpbn)?;
     }
