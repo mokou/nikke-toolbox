@@ -5,12 +5,17 @@ use fs_extra::dir::{CopyOptions, move_dir};
 use rfd::FileDialog;
 use std::fs;
 use std::io::ErrorKind;
-use std::os::windows::prelude::*;
-use std::os::windows::fs::{FileTypeExt, symlink_dir};
+use std::os::windows::fs::symlink_dir;
 use winreg::enums::*;
 use winreg::RegKey;
 use lazy_static::lazy_static;
-use std::path::{PathBuf, Path};
+use std::path::PathBuf;
+
+mod util;
+
+use util::fs::fuck_is_symlink as is_symlink;
+use util::fs::same_volume;
+use util::about;
 
 const HKCU: RegKey = RegKey::predef(HKEY_CURRENT_USER);
 
@@ -18,7 +23,7 @@ const RELOC_SUFFIX: &str = r"nikke-toolbox\LocalLow";
 const CPB_SUFFIX: &str = "com_proximabeta";
 const CPBN_SUFFIX: &str = r"Unity\com_proximabeta_NIKKE";
 
-const VERSION: &str = "0.1";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
     static ref INSTALL_PATH: PathBuf = PathBuf::from(
@@ -38,7 +43,8 @@ lazy_static! {
 
 fn main() -> std::io::Result<()> {
     println!("Nikke Toolbox v{}", VERSION);
-    println!("Highlight the desired operation with your arrow keys and hit Enter to select.");
+    println!("Highlight the desired operation with your arrow keys and hit Enter to select.\n");
+    util::update::check();
     let items = vec!["Exit", "Relocate Nikke", "Undo Nikke Relocation", "Nuke Installation", "About"];
     loop {
         let selection = Select::with_theme(&ColorfulTheme::default())
@@ -67,7 +73,7 @@ fn relocate() -> std::io::Result<()> {
     let cpbn = CPBN.as_path();
     
     // TODO: Make is_relocated() to check relocation status more throughly
-    if fuck_is_symlink(cpb)? || fuck_is_symlink(cpbn)? {
+    if is_symlink(cpb)? || is_symlink(cpbn)? {
         println!("Already relocated.");
         return Ok(());
     }
@@ -100,7 +106,7 @@ fn relocate() -> std::io::Result<()> {
         }
     }
     
-    if same_volume(&install)? {
+    if same_volume(&install, &LOCAL_LOW.as_path())? {
         println!("Game install path is on same filesystem as: {}.\nNo need to relocate.", LOCAL_LOW.display());
         return Ok(())
     }
@@ -146,7 +152,7 @@ fn undo_relocate() -> std::io::Result<()> {
     let cpb_reloc = fs::read_link(cpb).unwrap_or(PathBuf::from(cpb));
     let cpbn_reloc = fs::read_link(cpbn).unwrap_or(PathBuf::from(cpbn));
 
-    if !fuck_is_symlink(cpb)? {
+    if !is_symlink(cpb)? {
         println!("No relocation to undo at: {}", &cpb.display());
     } else {
         fs::remove_dir(cpb).unwrap_or_else(|error| {
@@ -165,7 +171,7 @@ fn undo_relocate() -> std::io::Result<()> {
         }
     }
     
-    if !fuck_is_symlink(cpbn)? {
+    if !is_symlink(cpbn)? {
         println!("No relocation to undo at: {}", &cpbn.display());
     } else {
         fs::remove_dir(cpbn).unwrap_or_else(|error| {
@@ -219,7 +225,7 @@ fn nuke() -> std::io::Result<()> {
     let mut cpb = PathBuf::from(CPB.as_path());
     let mut cpbn = PathBuf::from(CPBN.as_path());
     
-    if fuck_is_symlink(&cpb)? {
+    if is_symlink(&cpb)? {
         cpb = fs::read_link(&cpb)?;
     }
     match fs::remove_dir_all(&cpb) {
@@ -235,11 +241,11 @@ fn nuke() -> std::io::Result<()> {
             }
         }
     }
-    if fuck_is_symlink(CPB.as_path())? {
+    if is_symlink(CPB.as_path())? {
         fs::create_dir(&cpb)?;
     }
 
-    if fuck_is_symlink(&cpbn)? {
+    if is_symlink(&cpbn)? {
         cpbn = fs::read_link(&cpbn)?;
 
     }
@@ -256,38 +262,8 @@ fn nuke() -> std::io::Result<()> {
             }
         }
     }
-    if fuck_is_symlink(CPBN.as_path())? {
+    if is_symlink(CPBN.as_path())? {
         fs::create_dir(&cpbn)?;
     }
     Ok(())
-}
-
-fn about() {
-    println!("{}{}{}",
-        include_str!("../LICENSES/MIT.txt"),
-        include_str!("about.in"),
-        include_str!("../LICENSES/HelmSTAR.ico.txt")
-    );
-}
-
-fn fuck_is_symlink<P: AsRef<Path>>(path: P) -> Result<bool, std::io::Error> {
-    let metadata = match fs::symlink_metadata(path) {
-        Ok(res) => res,
-        Err(error) => {
-            if error.kind() == ErrorKind::NotFound {
-                return Ok(false);
-            }
-            return Err(error);
-        }
-    };
-    Ok(metadata.file_type().is_symlink_dir())
-}
-
-fn same_volume(path: &PathBuf) -> Result<bool, std::io::Error> {
-    let path_vol = fs::metadata(path)?.volume_serial_number()
-        .ok_or(std::io::ErrorKind::Other)?;
-    let local_low_vol = fs::metadata(LOCAL_LOW.as_path())?.volume_serial_number()
-        .ok_or(std::io::ErrorKind::Other)?;
-    
-    Ok(path_vol == local_low_vol)
 }
